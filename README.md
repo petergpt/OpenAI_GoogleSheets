@@ -5,6 +5,9 @@
 
 This is an introduction to Google Sheets OpenAI API Integration script. This tool is designed to help you analyse unstructured text, such as customer reviews and NPS feedback, directly within Google Sheets using the OpenAI API. This script allows you to automate text analysis, making it easier to extract structured information from your unstructured data in a convenient way.
 
+Access this sample Google Sheet, 'Make a Copy' to copy over the script and an editable version for your exploraiton. You will still need to add your own OpenAI API key.
+https://docs.google.com/spreadsheets/d/1UbXyxVlUDVQ_IAj4Ek5NyWfGfBsU0cwDskYhuh6rICw/edit?usp=sharing
+
 ### Key Functionalities
 
 - **LLM-based Text Analysis**: Automatically analyse and categorise unstructured text.
