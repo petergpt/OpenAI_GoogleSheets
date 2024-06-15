@@ -1,142 +1,40 @@
-// Function to get the schema from a dedicated schema sheet
-function getSchemaFromSheet(schemaSheetName) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(schemaSheetName);
-  if (!sheet) {
-    throw new Error('Schema sheet not found: ' + schemaSheetName);
-  }
-  var range = sheet.getDataRange();
-  var values = range.getValues();
-
-  var schema = {};
-  for (var i = 1; i < values.length; i++) {
-    var propertyName = values[i][0];
-    var propertyType = values[i][1];
-    if (propertyName && propertyType) {
-      schema[propertyName.trim()] = propertyType.trim().toLowerCase();
-    }
-  }
-  return schema;
-}
-
-// Function to get the schema based on the parameter name from the 'SystemPrompts' sheet
-function getSchema(parameterName) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('SystemPrompts');
-  var range = sheet.getDataRange();
-  var values = range.getValues();
-
-  for (var i = 1; i < values.length; i++) {
-    var sheetParameterName = values[i][0] ? values[i][0].trim() : '';
-    if (sheetParameterName === String(parameterName).trim()) {
-      var schemaSheetName = values[i][3] ? values[i][3].trim() : '';
-      return getSchemaFromSheet(schemaSheetName);
-    }
-  }
-  throw new Error('Schema not found for parameter name: ' + parameterName.trim());
-}
-
-/**
- * Validates the user data against the expected schema.
- */
-function validateUserData(data, schema) {
-  for (const key in schema) {
-    if (!data.hasOwnProperty(key)) {
-      throw new Error(`Missing required property: ${key}`);
-    }
-    if (typeof data[key] !== schema[key]) {
-      throw new Error(`Invalid data type for ${key}: expected ${schema[key]}, got ${typeof data[key]}`);
-    }
-  }
-  return data;
-}
-
-// Function to parse CSV data with semicolon delimiter
-function parseCSV(csv) {
-  var lines = csv.trim().split("\n");
-  var headers = lines[0].split(";");
-  var result = {};
-
-  for (var i = 1; i < lines.length; i++) {
-    var currentLine = lines[i].split(";");
-    for (var j = 0; j < headers.length; j++) {
-      result[headers[j].trim()] = currentLine[j].trim();
-    }
-  }
-  return result;
-}
-
-// Function to clean the response string
-function cleanResponse(response) {
-  return response.replace(/```csv/g, '').replace(/```/g, '').trim();
-}
-
-// Function to get the response format based on the parameter name from the 'SystemPrompts' sheet
-function getResponseFormat(parameterName) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('SystemPrompts');
-  var range = sheet.getDataRange();
-  var values = range.getValues();
-
-  for (var i = 1; i < values.length; i++) {
-    var sheetParameterName = values[i][0] ? values[i][0].trim() : '';
-    if (sheetParameterName === String(parameterName).trim()) {
-      return values[i][4] ? values[i][4].trim().toUpperCase() : 'JSON';
-    }
-  }
-  throw new Error('Response format not found for parameter name: ' + parameterName.trim());
-}
-
-// Function to call the OpenAI API
+// Function to call OpenAI API from Google Sheets
 function callOpenAI(parameterName, userInputText) {
-  // Script properties for API key
   var scriptProperties = PropertiesService.getScriptProperties();
   var apiKey = scriptProperties.getProperty('OPENAI_API_KEY');
 
-  // Accessing the 'SystemPrompts' sheet
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('SystemPrompts');
   var range = sheet.getDataRange();
   var values = range.getValues();
 
-  var model = ''; // Declare 'model' at function scope
+  var model = '';
   var systemPrompt = '';
-  var schema = {};
-  var responseFormat = '';
 
-  // Loop through the 'SystemPrompts' sheet to find matching 'parameterName'
   for (var i = 1; i < values.length; i++) {
     var sheetParameterName = values[i][0] ? values[i][0].trim() : '';
     if (sheetParameterName === String(parameterName).trim()) {
-      model = values[i][1] ? values[i][1].replace(/"/g, '').trim() : '';
+      model = values[i][1] ? values[i][1].trim() : '';
       systemPrompt = values[i][2] ? values[i][2].trim() : '';
-      var schemaSheetName = values[i][3] ? values[i][3].trim() : '';
-      responseFormat = values[i][4] ? values[i][4].trim().toUpperCase() : 'JSON';
-      schema = getSchemaFromSheet(schemaSheetName);
       break;
     }
   }
 
-  if (!model || !systemPrompt || Object.keys(schema).length === 0) {
+  if (!model || !systemPrompt) {
     throw new Error('Parameter name not found or incomplete in the SystemPrompts sheet. Searched for: ' + parameterName.trim());
   }
 
-  // Ensure 'userInputText' is a string and trimmed
-  userInputText = userInputText ? String(userInputText).trim() : '';
+  var apiUrl = 'https://api.openai.com/v1/chat/completions';
 
-  var apiUrl = 'https://api.openai.com/v1/chat/completions'; // API URL
-
-  // Prepare the payload for the API request
   var payload = {
     model: model,
-    messages: [{
-      role: "system",
-      content: systemPrompt
-    }, {
-      role: "user",
-      content: userInputText
-    }],
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userInputText }
+    ],
     max_tokens: 1000,
     temperature: 1
   };
 
-  // Set up request options, including headers with the API key
   var options = {
     method: 'post',
     contentType: 'application/json',
@@ -146,7 +44,6 @@ function callOpenAI(parameterName, userInputText) {
     payload: JSON.stringify(payload)
   };
 
-  // Make the API request and parse the response
   var response = UrlFetchApp.fetch(apiUrl, options);
   var json = JSON.parse(response.getContentText());
 
@@ -155,28 +52,76 @@ function callOpenAI(parameterName, userInputText) {
   }
 
   var content = json.choices[0].message.content.trim();
-  content = cleanResponse(content); // Clean the response
-
-  // Remove column headers if they exist
-  var lines = content.split("\n");
-  if (lines.length > 1 && lines[0].includes(";")) {
-    lines.shift();
-    content = lines.join("\n");
-  }
-
-  // Parse and validate the response based on the format
-  try {
-    var userData;
-    if (responseFormat === 'CSV') {
-      userData = parseCSV(content); // Parse the response text into a JavaScript object
-    } else { // Default to JSON
-      userData = JSON.parse(content); // Parse the response text into a JavaScript object
-    }
-    var user = validateUserData(userData, schema);
-    Logger.log(user);
-  } catch (e) {
-    Logger.log('Error validating user data: ' + e.message);
-  }
-
   return content;
+}
+
+// Function to create custom menu in Google Sheets
+function onOpen() {
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu('Revise API Response')
+    .addItem('Re-send request to OpenAI', 'reviseResponse')
+    .addToUi();
+}
+
+// Function to handle revising the response for multiple cells
+function reviseResponse() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var ranges = sheet.getActiveRangeList().getRanges();
+
+  ranges.forEach(function(range) {
+    var cells = range.getValues();
+    var formulas = range.getFormulas();
+    var startRow = range.getRow();
+    var startColumn = range.getColumn();
+
+    for (var i = 0; i < cells.length; i++) {
+      for (var j = 0; j < cells[i].length; j++) {
+        var cell = sheet.getRange(startRow + i, startColumn + j);
+        var formula = formulas[i][j];
+        if (formula) {
+          var parameterName = extractParameterNameFromFormula(formula);
+          var userInputText = cells[i][j];
+
+          var originalPrompt = getSystemPrompt(parameterName);
+          var originalResponse = userInputText;
+
+          var revisedPrompt = `
+            Here is the original user's system prompt: ${originalPrompt}
+            Based on this input: ${userInputText}
+            Here is the response that they got: ${originalResponse}
+            The user is not satisfied with the response, please revise to make sure it complies with the requirements of the request, including the requested schema.
+            Please provide only the revised structured response in the specified format without any additional explanation or text.
+          `;
+
+          var newValue = callOpenAI(parameterName, revisedPrompt);
+
+          cell.setValue(newValue);
+        }
+      }
+    }
+  });
+}
+
+// Helper function to extract the parameter name from the formula
+function extractParameterNameFromFormula(formula) {
+  var matches = formula.match(/callOpenAI\("([^"]+)",/i);
+  if (matches) {
+    return matches[1];
+  }
+  throw new Error('Parameter name not found in the formula: ' + formula);
+}
+
+// Helper function to get the system prompt based on the parameter name
+function getSystemPrompt(parameterName) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('SystemPrompts');
+  var range = sheet.getDataRange();
+  var values = range.getValues();
+
+  for (var i = 1; i < values.length; i++) {
+    var sheetParameterName = values[i][0] ? values[i][0].trim() : '';
+    if (sheetParameterName === String(parameterName).trim()) {
+      return values[i][2] ? values[i][2].trim() : '';
+    }
+  }
+  throw new Error('System prompt not found for parameter name: ' + parameterName.trim());
 }
