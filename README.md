@@ -167,3 +167,9 @@ This section provides solutions to common issues you might encounter while using
 
 #### Q: How do I change the response format?
 **A:** Update the `Response Format` column in the `System Prompts` sheet to either `CSV` or `JSON`, depending on your preference.
+
+#### Q: How does the schema get validated?
+**A:** The schema is validated by reading the expected structure and data types from a dedicated Google Sheet. The code then compares each property in the received data against this schema to ensure all required properties are present and have the correct data types. If the data matches the schema, it is considered valid.
+
+#### Q: What happens if the schema doesn't get validated?
+**A:** If the received data does not match the expected schema, an error is thrown. This error specifies which property is missing or has an incorrect data type. The invalid data is then logged, and further processing is halted to prevent the use of improperly formatted data.
