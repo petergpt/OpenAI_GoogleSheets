@@ -33,7 +33,7 @@ Before you begin, ensure you have the following:
 4. **Copy the script from the provided script file and paste it into the script editor.**
 5. **Save the script** by by clicking the 'Save' icon.
 6. **Authorize the script**: The first time you run the script, you will be prompted to authorize it. Follow the on-screen instructions to grant the necessary permissions.
-7. **Run the script**: Select the function `callOpenAI` from the dropdown menu and click the play button to execute the script.
+7. **Run the script**: Select the function `callOpenAI` from the dropdown menu and click the play button to execute the script. Run 'onOpen' function to enable the button to re-run API calls for selected cells.
 
 ### Setting the OpenAI API Key
 
@@ -111,6 +111,7 @@ The script also creates a custom button called 'Revise API Responses'. It allows
 
 #### How to use it
 
+1. **First time setup** go to the AppsScript, select function onOpen and run it to enable the button. After this you should see the button 'Revise API Response' on top of the spreadsheet. Refresh the sheet if not. 
 1. **Select cells with bad responses** select as many cells as needed
 2. **Click button** 'Revise API Responses' drop down, then select 'Re-send API request to OpenAI' button.
 3. **API request** This will trigger a script to execute a second API call with an updated prompt that asks the same model to revise the output
