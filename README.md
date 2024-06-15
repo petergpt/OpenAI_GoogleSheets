@@ -3,21 +3,13 @@
 
 ## Introduction
 
-This is an into to Google Sheets OpenAI API Integration script. This tool is designed to help you analyse unstructured text, such as customer reviews and NPS feedback, directly within Google Sheets using the OpenAI API. This script allows you to automate text analysis and ensure adherence to a predefined schema, making it easier to extract structured information from your unstructured data in a conveinet way.
+This is an introduction to Google Sheets OpenAI API Integration script. This tool is designed to help you analyse unstructured text, such as customer reviews and NPS feedback, directly within Google Sheets using the OpenAI API. This script allows you to automate text analysis, making it easier to extract structured information from your unstructured data in a convenient way.
 
 ### Key Functionalities
 
 - **LLM-based Text Analysis**: Automatically analyse and categorise unstructured text.
-- **Customisable Schema**: Define your own schema in Google Sheets to ensure consistent data structure.
-- **CSV and JSON Parsing**: Handle responses in both CSV and JSON formats.
-- **Data Validation**: Ensure that the analysed data adheres to the expected schema.
-- **Use Your Own OpenAI**: Data only passes to OpenAI API and no other external service.
-
-### Use Cases
-
-- **Customer Feedback Analysis**: Quickly analyse customer reviews to understand common issues and sentiments.
-- **Trend Identification**: Identify trends in customer feedback to improve products or services.
-- **Automated Reporting**: Generate reports based on analysed text data for stakeholders.
+- **One-button revised call**: A button to send a second call to improve the output.
+- **Use Your Own OpenAI API Key**: Data only passes to OpenAI API and no other external service.
 
 ## Getting Started
 
@@ -28,7 +20,7 @@ This section will guide you through the initial setup required to use the Google
 Before you begin, ensure you have the following:
 
 - **Google Account**: You need a Google account to access Google Sheets and Google Apps Script.
-- **Google Sheets**: Create a new Google Sheet or use an existing one where you will store your data and schema.
+- **Google Sheets**: Create a new Google Sheet or use an existing one where you will store your data.
 - **OpenAI API Key**: Use your own API key from OpenAI.
 
 ### Setting Up the Environment
@@ -39,137 +31,113 @@ Before you begin, ensure you have the following:
 2. **Click on `Extensions` > `Apps Script` to open the script editor.**
 3. **Delete any existing code in the script editor.**
 4. **Copy the script from the provided script file and paste it into the script editor.**
-5. **Save the script** by clicking the disk icon or pressing `Ctrl+S` (Windows) or `Cmd+S` (Mac).
+5. **Save the script** by by clicking the 'Save' icon.
 6. **Authorize the script**: The first time you run the script, you will be prompted to authorize it. Follow the on-screen instructions to grant the necessary permissions.
 7. **Run the script**: Select the function `callOpenAI` from the dropdown menu and click the play button to execute the script.
 
 ### Setting the OpenAI API Key
 
-1. **Open the Google Apps Script editor** in your Google Sheets document.
-2. **Click on `File` in the top menu.**
-3. **Select `Project properties` from the dropdown menu.**
-4. **Go to the `Script Properties` tab.**
-5. **Click `+ Add row`.**
-6. **Set the `Name` to `OPENAI_API_KEY`.**
-7. **Set the `Value` to your OpenAI API key.**
-8. **Click `Save`.**
+1. ***Get your OpenAI API Key*** from https://platform.openai.com/api-keys
+2. **Open the Google Apps Script editor** in your Google Sheets document.
+3. **Click on `File` in the top menu.**
+4. **Select `Project properties` from the dropdown menu.**
+5. **Go to the `Script Properties` tab.**
+6. **Click `+ Add row`.**
+7. **Set the `Name` to `OPENAI_API_KEY`.**
+8. **Set the `Value` to your OpenAI API key.**
+9. **Click `Save`.**
 
 #### 2. Setting Up the Google Sheets
 
-You will need two sheets in your Google Sheets document:
-
-1. **SystemPrompts Sheet**: This sheet will contain the mapping between parameter names and their corresponding model, system prompt, schema sheet, and response format.
-2. **Schema Sheet**: This sheet will define the structure of the data you expect to receive from the OpenAI API.
+You will need a sheet in your Google Sheets document called `SystemPrompts`:
 
 ##### SystemPrompts Sheet Structure
 
-| Parameter Name | Model         | System Prompt                           | Schema Sheet | Response Format |
-|----------------|---------------|-----------------------------------------|--------------|-----------------|
-| TextAnalysis   | gpt-3.5-turbo | [Your system prompt as described below] | DataSchema   | CSV             |
-| TextAnalysis   | gpt-4o        | [Your system prompt as described below] | DataSchema   | JSON            |
-
-##### Schema Sheet Structure
-
-**Schema Sheet (DataSchema) Example:**
-
-| Property Name    | Property Type | Property Description                                  |
-|------------------|---------------|-------------------------------------------------------|
-| Category         | string        | The main category of the data                         |
-| Subcategory1     | string        | The first subcategory of the data                     |
-| Subcategory2     | string        | The second subcategory of the data (if applicable)    |
-
-Ensure that these sheets are set up correctly in your Google Sheets document before proceeding to add the script. Please ensure the names are exactly as written here to ensure cosistency with the script.
+| Parameter Name | Model | System Prompt |
+|----------------|-------|---------------|
+| Review-4o      | gpt-4 | [Your system prompt as described below] |
 
 ### Customising the System Prompt
 
-The system prompt guides the OpenAI model in analysing the text. You can customise this prompt directly in the SystemPrompts sheet.
+The system prompt guides the OpenAI model in analysing the text. You can customise this prompt directly in the `SystemPrompts` sheet.
 
 #### Example System Prompt
 
 ```markdown
-You are a data analyst who assigns categories and subcategories to the given data. The goal is to accurately tag data based on predefined categories to identify trends and areas for improvement. Take the input data and assign one category and a maximum of two subcategories.
+Given a customer review for an online retailer, extract and structure the relevant information into a CSV format without including the column headers. If any data is missing, specify it as 'null'. Use semicolons (;) as the delimiter. The structured output should include the following aspects in the given order:
 
-Categories:
-- Category1
-  - Subcategory1.1
-  - Subcategory1.2
-- Category2
-  - Subcategory2.1
-  - Subcategory2.2
+Classification: Positive, Neutral, Negative
+Summary: Summarise the customer's feedback in one sentence.
+Issue: List any problems or complaints mentioned.
+Positives: Highlight any positive aspects mentioned.
+Sentiment: Overall sentiment expressed (Positive, Neutral, Negative).
+Detailed Sentiment: More detailed emotions conveyed.
+Products: Mention any specific products or services highlighted in the feedback.
+Location: Any geographical locations mentioned.
+NPS: Estimate a Net Promoter Score from 1 (least likely to recommend) to 10 (most likely to recommend).
 
-Only output the category and subcategories. For example: Category1; Subcategory1.1; Subcategory1.2
+The CSV output should use semicolons as delimiters and look like this:
+Classification;Summary;Issue;Positives;Sentiment;Detailed Sentiment;Products;Location;NPS
 ```
 
 ### Example Output
 
 For the given reviews, the output might look like this:
 
-| Customer Reviews                                   | Category            | Subcategory1            | Subcategory2          |
-|----------------------------------------------------|---------------------|-------------------------|-----------------------|
-| The app keeps crashing on my phone.                | App Functionality   | Errors and Bugs         |                       |
-| I love the new update, but the navigation is a bit confusing. | App Functionality   | Updates                 | Navigation            |
-| Excellent customer service, but delivery was late. | Customer Service    | Problem Resolution      | Delivery Delays       |
-
-### Updating the System Prompt in the SystemPrompts Sheet
-
-1. **Open your Google Sheets document.**
-2. **Navigate to the `SystemPrompts` sheet.**
-3. **Find the row corresponding to the Parameter Name you are using.**
-4. **Update the `System Prompt` column with your customised prompt.
+| Customer Reviews                                   | Structured Output                                                                                       |
+|----------------------------------------------------|--------------------------------------------------------------------------------------------------------|
+| The app keeps crashing on my phone.                | Negative;The app keeps crashing on my phone.;Errors;null;Negative;Frustration;App;null;2               |
+| I love the new update, but the navigation is a bit confusing. | Positive;I love the new update, but the navigation is a bit confusing.;Navigation;Updates;Positive;Mixed feelings;App;null;7 |
+| Excellent customer service, but delivery was late. | Positive;Excellent customer service, but delivery was late.;Delivery;Customer service;Positive;Mixed;Service;null;5  |
 
 ## Running the Script
 
-To use the script within Google Sheets, you can call the `callOpenAI` function from a custom menu or directly from a cell.
+To use the script within Google Sheets, you can call the `callOpenAI` function directly from a cell.
 
 #### Using the Script Directly from a Cell
 
 **Use the function in a cell** in your Google Sheets document:
 
 ```
-==callOpenAI("TextAnalysis", A1)
+=callOpenAI("Review-4o", A1)
 ```
 
 Replace `A1` with the reference to the cell containing the input data.
-Replace "TextAnalysis" with the Parameter Name of the function you are using in 'SystemPrompts' (column A)
+Replace "Review-4o" with your Parameter Name (column A) in SystemPrompts sheet.
+
+### Revise API Response - Custom Button
+
+The script also creates a custom button called 'Revise API Responses'. It allows you to select the cells for which you are not happy with the response and get the LLM to improve the response in a second call.
+
+#### How to use it
+
+1. **Select cells with bad responses** select as many cells as needed
+2. **Click button** 'Revise API Responses' drop down, then select 'Re-send API request to OpenAI' button.
+3. **API request** This will trigger a script to execute a second API call with an updated prompt that asks the same model to revise the output
+4. **Updated response** The cell will now be updated with a response value from the LLM
 
 ## Troubleshooting
 
-This section provides solutions to common issues you might encounter while using the Google Sheets Classifier. Follow these steps to resolve any problems and ensure smooth operation.
+This section provides solutions to common issues you might encounter while using the Google Sheets OpenAI API Integration. Follow these steps to resolve any problems and ensure smooth operation.
 
 ### Common Issues and Solutions
 
-#### Issue: "After I open the spreadsheet API calls a repeated"
-- **Solution**: This is a known issue that cannot be easily solved. The recommendation is to copy-paste the outputs, store them as values and remove formulas to avoid repeated API calls.
-- 
-#### Issue: "Schema sheet not found: undefined"
-- **Solution**: Ensure that the `System Prompts` sheet contains the correct schema sheet name for the parameter you are using. Verify that the schema sheet name is spelled correctly and exists in your Google Sheets document.
+#### Issue: "Script function not found: triggerApiCall"
+- **Solution**: Ensure that all function names are correctly referenced in the script. Replace any outdated function names with the correct ones.
 
 #### Issue: "OpenAI response does not contain the expected message content"
 - **Solution**: Check the system prompt to ensure it is clear and concise. Verify that the OpenAI API is returning valid responses by testing it with sample inputs directly in the OpenAI API playground.
 
-#### Issue: "Missing required property"
-- **Solution**: Ensure that the schema defined in your schema sheet matches the expected properties in the OpenAI API response. Check for typos or missing properties in both the schema sheet and the system prompt.
-
-#### Issue: "Invalid data type for property"
-- **Solution**: Verify that the data types specified in the schema sheet match the data types returned by the OpenAI API. Update the schema sheet to correct any mismatched data types.
-
+#### Issue: "Resive API Response button not working"
+- **Solution**: Open the script, run the onOpen function, refresh the spreadsheet.
 
 ### Frequently Asked Questions (FAQs)
 
 #### Q: Where does my data go?
-**A:** You are using your own OpenAI API key and any data you adding via the prompts will be sent to OpenAI. It does not get routed via any other service.
+**A:** You are using your own OpenAI API key and any data you add via the prompts will be sent to OpenAI. It does not get routed via any other service.
 
 #### Q: How do I update the system prompt?
-**A:** Open your Google Sheets document, navigate to the `System Prompts` sheet, find the row corresponding to the parameter name you are using, and update the `System Prompt` column with your customized prompt.
+**A:** Open your Google Sheets document, navigate to the `System Prompts` sheet, find the row corresponding to the parameter name you are using, and update the `System Prompt` column with your customised prompt.
 
-#### Q: Can I use multiple schemas in one Google Sheets document?
-**A:** Yes, you can define multiple schemas in different sheets and reference them in the `System Prompts` sheet. Ensure that the correct schema sheet name is specified for each parameter.
-
-#### Q: How do I change the response format?
-**A:** Update the `Response Format` column in the `System Prompts` sheet to either `CSV` or `JSON`, depending on your preference.
-
-#### Q: How does the schema get validated?
-**A:** The schema is validated by reading the expected structure and data types from a dedicated Google Sheet. The code then compares each property in the received data against this schema to ensure all required properties are present and have the correct data types. If the data matches the schema, it is considered valid.
-
-#### Q: What happens if the schema doesn't get validated?
-**A:** If the received data does not match the expected schema, an error is thrown. This error specifies which property is missing or has an incorrect data type. The invalid data is then logged, and further processing is halted to prevent the use of improperly formatted data.
+#### Q: Why do my API calls get re-sent when I open the spreadsheet?
+**A:** It is a known issue that is a limitation of this integration. It is best to make the call, copy out the data and remove the formulas (leave one for future reference) that make the API calls to avoid unecessary calls.
